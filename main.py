@@ -85,6 +85,15 @@ resource_field_user = {
     'user_list_of_interviews' : fields.String
 }
 
+resource_field_job = {
+    'job_id' : fields.Integer,
+    'job_owner' : fields.Integer,
+    'job_title' : fields.String,
+    'job_description' : fields.String,
+    'job_list_of_applicants' : fields.String,
+    'job_list_of_interviews' : fields.String
+}
+
 ### Restful Stuff
 #twitter scrapper REST
 class TwitterScrapper(Resource):
@@ -142,8 +151,39 @@ class User(Resource):
 
 #Job REST
 class Job(Resource):
-    def put(self):
-        return ''
+    @marshal_with(resource_field_job)
+    def put(self, j_id):
+        args = job_put_args.parse_args()
+        result = JobPostingModel.query.filter_by(job_id=j_id).first()
+        if result:
+            abort(409, message="Job ID already exsists. Job not Created.")
+        
+        job = JobPostingModel(job_id=j_id, job_owner=args['job_owner'], job_title=args['job_title'], job_description=args['job_description'])
+        db.session.add(job)
+        db.session.commit()
+        return job, 201
+
+    @marshal_with(resource_field_job)
+    def patch(self, j_id):
+        args = job_patch_args.parse_args()
+        result = JobPostingModel.query.filter_by(job_id=j_id).first()
+        if not result:
+            abort(404, message="Job ID doesnt exist. Job not Updated.")
+        
+        if args['job_applicant']:
+            if result.job_list_of_applicants:
+                result.job_list_of_applicants = result.job_list_of_applicants + "," + args['job_applicant']
+            else:
+                result.job_list_of_applicants = args['job_applicant']
+        
+        if args['job_interview']:
+            if result.job_list_of_interviews:
+                result.job_list_of_interviews = result.job_list_of_interviews + "," + args['job_interview']
+            else:
+                result.job_list_of_interviews = args['job_interview'] 
+
+        db.session.commit()
+        return result
 
 
 
