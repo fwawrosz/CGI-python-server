@@ -28,7 +28,7 @@ class UserModel(db.Model):
     __tablename__ = 'Users'
     user_id = db.Column(db.Integer, primary_key=True)
     user_name = db.Column(db.String, nullable=False)
-    user_is_employer = db.Column(db.Integer, nullable=False) # 0 = Employer, 1 = Job Seeker 
+    user_is_employer = db.Column(db.Integer, nullable=False) # 1 = Employer, 0 = Job Seeker 
     user_list_of_applications = db.Column(db.String, nullable=True) # comma deliminated list of job_id's
     user_list_of_interviews = db.Column(db.String, nullable=True) # comma deliminated list of job_id's
 
@@ -75,6 +75,10 @@ job_put_args.add_argument("job_description", type=str, help="Job Description is 
 job_patch_args = reqparse.RequestParser()
 job_patch_args.add_argument("job_applicant", type=str, help="User ID of job applicant.", required=False)
 job_patch_args.add_argument("job_interview", type=str, help="User ID of interviewee.", required=False)
+
+#Job Postings Get Args
+job_get_args = reqparse.RequestParser()
+job_get_args.add_argument("job_get_flag", type=str, help="Flag Options: 'a' - returns all job postings, 'user_id' - returns that users jobs.", required=True)
 
 ###Resource Fields
 resource_field_user = {
@@ -147,10 +151,31 @@ class User(Resource):
 
         return result
 
-
-
 #Job REST
 class Job(Resource):
+    @marshal_with(resource_field_job)
+    def get(self,j_id):
+        args = job_get_args.parse_args()
+        if args['job_get_flag'] == "a":
+            jobs = JobPostingModel.query.all()
+
+        elif intTryParse(args['job_get_flag']):
+            user = UserModel.query.filter_by(user_id=int(args['job_get_flag'])).first()
+            if not user:
+                abort(404, message="User ID does not exist.")
+
+            elif user.user_is_employer == 1:
+                jobs = JobPostingModel.query.filter_by(job_owner=int(args['job_get_flag'])).first()
+
+            else:
+                jobs = JobPostingModel.query.filter(JobPostingModel.job_list_of_applicants.contains(args['job_get_flag']))
+
+        else:
+            abort(422, message="Flag is incorrect. Flag Options: 'a' - returns all job postings, 'user_id' - returns that users jobs.")
+
+
+        return jobs
+
     @marshal_with(resource_field_job)
     def put(self, j_id):
         args = job_put_args.parse_args()
@@ -195,6 +220,13 @@ api.add_resource(User, "/user/<int:u_id>")
 
 #job target
 api.add_resource(Job, "/job/<int:j_id>")
+
+#int parser
+def intTryParse(value):
+    try:
+        return int(value), True
+    except ValueError:
+        return value, False
 
 #degub MODE
 if __name__ == "__main__":
