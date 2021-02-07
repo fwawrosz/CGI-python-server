@@ -53,7 +53,7 @@ class JobPostingModel(db.Model):
 find_tweets_args = reqparse.RequestParser()
 find_tweets_args.add_argument("subject", type=str, help="Subject for the search is required", required=True)
 #find_tweets_args.add_argument("startDate", type=str, help="Start date for search is required", required=True)
-number_of_tweets_to_find = 2
+number_of_tweets_to_find = 10
 
 #User Put Args
 user_put_args = reqparse.RequestParser()
@@ -106,7 +106,8 @@ class TwitterScrapper(Resource):
         args = find_tweets_args.parse_args()
 
         # Creation of query method using parameters
-        tweets = tweepy.Cursor(tweet_api.search,q=args['subject'],geocode="45.501689,-73.567256,300km").items(number_of_tweets_to_find)
+        #tweets = tweepy.Cursor(tweet_api.search,q=args['subject'],geocode="45.501689,-73.567256,300km").items(number_of_tweets_to_find)
+        tweets = tweepy.Cursor(tweet_api.search,q=args['subject']).items(number_of_tweets_to_find)
  
         # Pulling information from tweets iterable object
         tweets_list = [[tweet.id, tweet.text, tweet.user.location, tweet.user.screen_name] for tweet in tweets]
