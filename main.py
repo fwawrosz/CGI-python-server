@@ -211,6 +211,15 @@ class Job(Resource):
         db.session.commit()
         return result
 
+    def delete(seld, j_id):
+        result = JobPostingModel.query.filter_by(job_id=j_id).first()
+        if not result:
+            abort(404, message="Job ID doesnt exist. Job not Deleted.")
+
+        JobPostingModel.query.filter_by(job_id=j_id).delete()
+        db.session.commit()
+
+        return 200
 
 
 #twitter search target
